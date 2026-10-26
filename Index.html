@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Call Of Booty Black Cocks</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* CoD Crosshair */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .ch-line {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 2px rgba(0,0,0,0.8);
+            transition: all 0.05s ease-out;
+        }
+
+        .ch-top { width: 2px; height: 10px; top: -16px; left: -1px; }
+        .ch-bottom { width: 2px; height: 10px; bottom: -16px; left: -1px; }
+        .ch-left { width: 10px; height: 2px; left: -16px; top: -1px; }
+        .ch-right { width: 10px; height: 2px; right: -16px; top: -1px; }
+        .ch-dot { width: 3px; height: 3px; background: rgba(255, 255, 255, 0.9); border-radius: 50%; top: -1.5px; left: -1.5px; }
+
+        /* Hitmarker */
+        #hitmarker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 21;
+            transition: opacity 0.05s ease;
+        }
+
+        .hm-line {
+            position: absolute;
+            background-color: #ff3333;
+            box-shadow: 0 0 4px #ff0000;
+        }
+
+        .hm-1 { width: 10px; height: 2px; top: 0; left: 5px; }
+        .hm-2 { width: 10px; height: 2px; bottom: 0; left: 5px; }
+        .hm-3 { width: 2px; height: 10px; top: 5px; left: 0; }
+        .hm-4 { width: 2px; height: 10px; top: 5px; right: 0; }
+
+        /* Damage Screen Overlay */
+        #damage-overlay {
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 60px rgba(255, 0, 0, 0.8);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 40;
+            transition: opacity 0.15s ease-out;
+        }
+
+        /* Death FX Overlay */
+        #death-overlay {
+            position: absolute;
+            inset: 0;
+            background: #000000;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 45;
+            transition: opacity 0.8s ease;
+        }
+
+        /* Glass scope overlay */
+        #scope-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, transparent 30%, black 70%);
+            display: none;
+            pointer-events: none;
+            z-index: 19;
+        }
+
+        /* Secret Weapon Unlock Banner */
+        #secret-banner {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 60;
+        }
+        #secret-banner.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
+        ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-black text-white select-none overflow-hidden">
+
+    <!-- Game Canvas Container -->
+    <div id="canvas-container" class="relative w-full h-full">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Secret Unlock Banner Notification -->
+        <div id="secret-banner" class="bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 border-4 border-yellow-200 px-8 py-4 rounded-2xl shadow-[0_0_50px_rgba(250,204,21,0.8)] text-center text-black">
+            <div class="text-xs font-black tracking-widest uppercase text-amber-950">--- CHEAT CODE ACTIVATED ---</div>
+            <div class="text-3xl font-black tracking-wider uppercase drop-shadow">✨ SECRET WEAPON UNLOCKED ✨</div>
+            <div class="text-lg font-extrabold tracking-widest text-amber-900 mt-0.5">BABY OIL SPRAYER 🧴</div>
+        </div>
+
+        <!-- HUD Overlay -->
+        <div id="hud" class="absolute inset-0 pointer-events-none z-10 hidden">
+            <!-- Top Match Info -->
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-6 bg-black/70 px-6 py-2 rounded-full border border-gray-800 backdrop-blur">
+                <div class="text-amber-500 font-bold tracking-wider text-sm flex items-center gap-2">
+                    <span id="faction-tag" class="bg-emerald-600 text-white px-2 py-0.5 rounded text-xs font-black">ARMY</span>
+                    <span>FREE FOR ALL COMBAT</span>
+                </div>
+                <div class="text-2xl font-black font-mono tracking-wider text-white" id="match-timer">05:00</div>
+                <div class="text-gray-400 text-xs tracking-wider" id="score-limit">LIMIT: 30 KILLS</div>
+            </div>
+
+            <!-- Killfeed (Top Right) -->
+            <div id="killfeed" class="absolute top-16 right-6 flex flex-col gap-1 items-end max-w-xs text-xs font-semibold"></div>
+
+            <!-- Spawn Shield Immunity Indicator -->
+            <div id="spawn-shield" class="absolute top-20 left-1/2 -translate-x-1/2 bg-blue-600/80 text-blue-100 px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-blue-400 shadow-lg hidden">
+                🛡️ SPAWN IMMUNITY ACTIVE (3s)
+            </div>
+
+            <!-- Ladder Climbing Indicator -->
+            <div id="ladder-prompt" class="absolute bottom-1/3 left-1/2 -translate-x-1/2 bg-amber-500/90 text-black px-4 py-1.5 rounded-md text-xs font-black tracking-wider uppercase shadow-lg hidden">
+                [W] CLIMB LADDER • [SPACE] JUMP OFF
+            </div>
+
+            <!-- Bottom Left: Health & Minimap -->
+            <div class="absolute bottom-6 left-6 flex flex-col gap-2">
+                <div class="w-36 h-36 bg-black/70 border-2 border-amber-500/60 rounded-lg relative overflow-hidden shadow-2xl backdrop-blur">
+                    <canvas id="minimap-canvas" class="w-full h-full" width="144" height="144"></canvas>
+                    <div class="absolute inset-0 border border-amber-500/20 pointer-events-none"></div>
+                </div>
+
+                <div class="w-48 bg-gray-900/80 h-4 rounded border border-gray-700 overflow-hidden relative shadow">
+                    <div id="health-bar" class="bg-gradient-to-r from-red-600 to-emerald-500 h-full w-full transition-all duration-200"></div>
+                    <span id="health-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-widest text-white drop-shadow">100 HP</span>
+                </div>
+            </div>
+
+            <!-- Bottom Right: Weapon & Throwables -->
+            <div class="absolute bottom-6 right-6 flex flex-col items-end gap-3">
+                <div class="flex gap-3">
+                    <div id="chopper-card" class="bg-black/70 border border-yellow-500/80 rounded p-2 text-center w-24 shadow backdrop-blur hidden animate-bounce">
+                        <div class="text-[9px] text-yellow-400 font-bold">STREAK [7]</div>
+                        <div class="text-[10px] font-black text-yellow-300">CHOPPER [6]</div>
+                    </div>
+                    <div id="killstreak-card" class="bg-black/70 border border-amber-500/50 rounded p-2 text-center w-20 shadow backdrop-blur hidden animate-bounce">
+                        <div class="text-[9px] text-amber-400 font-bold">STREAK [5]</div>
+                        <div class="text-xs font-black text-amber-300">MISSILE [5]</div>
+                    </div>
+                    <div id="grenade-card" class="bg-black/70 border border-gray-700 rounded p-2 text-center w-16 shadow backdrop-blur">
+                        <div class="text-[10px] text-gray-400 font-bold">FRAG [G]</div>
+                        <div id="grenade-cd" class="text-sm font-black text-amber-400">READY</div>
+                    </div>
+                    <div id="flash-card" class="bg-black/70 border border-gray-700 rounded p-2 text-center w-16 shadow backdrop-blur">
+                        <div class="text-[10px] text-gray-400 font-bold">FLASH [F]</div>
+                        <div id="flash-cd" class="text-sm font-black text-blue-400">READY</div>
+                    </div>
+                    <div id="melee-card" class="bg-black/70 border border-gray-700 rounded p-2 text-center w-16 shadow backdrop-blur">
+                        <div class="text-[10px] text-gray-400 font-bold">MELEE [V]</div>
+                        <div id="melee-cd" class="text-sm font-black text-emerald-400">READY</div>
+                    </div>
+                </div>
+
+                <!-- Ammo Display Card -->
+                <div id="weapon-card" class="bg-black/80 border-r-4 border-amber-500 px-6 py-3 rounded-l-lg shadow-2xl backdrop-blur flex flex-col items-end min-w-[180px]">
+                    <div id="weapon-name" class="text-amber-400 font-black tracking-wider text-sm uppercase">AK-47 ASSAULT RIFLE</div>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span id="ammo-clip" class="text-4xl font-black tracking-tighter text-white">30</span>
+                        <span class="text-gray-500 font-bold text-xl">/</span>
+                        <span id="ammo-reserve" class="text-gray-400 font-bold text-lg">120</span>
+                    </div>
+                    <div id="reload-prompt" class="text-red-500 text-[10px] font-bold tracking-widest mt-1 hidden animate-pulse">PRESS [R] TO RELOAD</div>
+                </div>
+            </div>
+
+            <!-- Dynamic Crosshair -->
+            <div id="crosshair" class="crosshair">
+                <div class="ch-line ch-top"></div>
+                <div class="ch-line ch-bottom"></div>
+                <div class="ch-line ch-left"></div>
+                <div class="ch-line ch-right"></div>
+                <div class="ch-dot"></div>
+            </div>
+
+            <div id="hitmarker">
+                <div class="hm-line hm-1"></div>
+                <div class="hm-line hm-2"></div>
+                <div class="hm-line hm-3"></div>
+                <div class="hm-line hm-4"></div>
+            </div>
+
+            <div id="scope-overlay"></div>
+        </div>
+
+        <!-- Damage Visual FX & Death Overlay -->
+        <div id="damage-overlay"></div>
+        <div id="death-overlay" class="flex flex-col items-center justify-center text-center p-6">
+            <h1 class="text-6xl font-black text-red-600 tracking-wider mb-2 drop-shadow-lg">YOU DIED</h1>
+            <div id="killed-by-text" class="text-2xl font-bold text-yellow-400 tracking-wide uppercase mb-4 drop-shadow">
+                YOU WERE KILLED BY <span id="killer-name" class="text-white font-black underline">ENEMY BOT</span>
+            </div>
+            <p class="text-gray-400 text-xs tracking-widest uppercase">RESPAWNING IN 3 SECONDS...</p>
+        </div>
+
+        <!-- TAB Scoreboard Screen -->
+        <div id="scoreboard-modal" class="absolute inset-0 bg-black/80 z-30 hidden backdrop-blur-md flex flex-col items-center justify-center p-8 pointer-events-none">
+            <div class="w-full max-w-3xl bg-gray-900/90 border border-amber-500/40 rounded-xl p-6 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-4 mb-4">
+                    <div>
+                        <h2 id="sb-game-title" class="text-2xl font-black tracking-wider text-amber-500 uppercase">CALL OF BATTLE: COVERT OPS</h2>
+                        <p class="text-xs text-gray-400">FACTION COMBAT SCOREBOARD</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="sb-map-title" class="text-sm font-bold text-gray-300 uppercase">MAP: DUNES</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-gray-800 text-xs uppercase tracking-wider">
+                                <th class="pb-3">RANK</th>
+                                <th class="pb-3">PLAYER</th>
+                                <th class="pb-3">FACTION</th>
+                                <th class="pb-3 text-center">KILLS</th>
+                                <th class="pb-3 text-center">DEATHS</th>
+                                <th class="pb-3 text-right">SCORE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoreboard-rows" class="divide-y divide-gray-800/50 font-mono"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Menu & Pause Overlay -->
+        <div id="main-menu" class="absolute inset-0 z-40 bg-gradient-to-br from-gray-950 via-gray-900 to-black flex flex-col items-center justify-center p-6 select-none overflow-y-auto">
+            <div class="max-w-4xl w-full bg-black/85 border border-amber-500/30 rounded-2xl p-8 backdrop-blur-xl shadow-2xl flex flex-col gap-6 my-auto">
+                
+                <div class="text-center border-b border-gray-800 pb-6">
+                    <h1 id="menu-game-title" class="text-4xl md:text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 drop-shadow">
+                        CALL OF BATTLE: COVERT OPS
+                    </h1>
+                    <p class="text-gray-400 text-xs md:text-sm tracking-widest uppercase mt-2">ARMY VS TERRORIST COMBAT SIMULATOR</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left: Class & Faction Selection -->
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <h3 class="text-amber-400 text-xs font-black tracking-wider uppercase border-l-4 border-amber-500 pl-2 mb-2">SELECT YOUR FACTION</h3>
+                            <div class="grid grid-cols-2 gap-2" id="faction-selector">
+                                <button data-faction="army" class="faction-btn active bg-emerald-600/30 border-2 border-emerald-500 p-2 rounded-lg text-center hover:bg-emerald-600/50 transition">
+                                    <div class="font-bold text-xs text-emerald-300">ARMY FACTION</div>
+                                    <div class="text-[9px] text-gray-400">Tactical Military</div>
+                                </button>
+                                <button data-faction="terrorist" class="faction-btn bg-gray-900 border border-gray-700 p-2 rounded-lg text-center hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">TERRORIST FACTION</div>
+                                    <div class="text-[9px] text-gray-400">Insurgent Militia</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-amber-400 text-xs font-black tracking-wider uppercase border-l-4 border-amber-500 pl-2 mb-2">BOT DIFFICULTY & MATCH TIME</h3>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="text-[10px] text-gray-400 font-bold block mb-1">BOT DIFFICULTY</label>
+                                    <select id="bot-difficulty-select" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-amber-400 font-bold focus:outline-none">
+                                        <option value="easy">EASY (RELAXED)</option>
+                                        <option value="medium" selected>MEDIUM (BALANCED)</option>
+                                        <option value="hard">HARD (VETERAN)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-400 font-bold block mb-1">MATCH TIMER</label>
+                                    <select id="match-timer-select" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-amber-400 font-bold focus:outline-none">
+                                        <option value="180">3 MINUTES</option>
+                                        <option value="300" selected>5 MINUTES</option>
+                                        <option value="600">10 MINUTES</option>
+                                        <option value="99999">UNLIMITED</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-amber-400 text-xs font-black tracking-wider uppercase border-l-4 border-amber-500 pl-2 mb-2">SELECT WEAPON CLASS</h3>
+                            <div class="grid grid-cols-1 gap-1.5" id="class-selector">
+                                <button data-class="ar" class="class-btn active bg-amber-500/20 border-2 border-amber-500 p-2 rounded-lg text-left hover:bg-amber-500/30 transition">
+                                    <div class="font-bold text-xs text-white">ASSAULT (AK-47)</div>
+                                    <div class="text-[9px] text-gray-400">Full-Auto • High Damage & Heavy Recoil</div>
+                                </button>
+                                <button data-class="smg" class="class-btn bg-gray-900 border border-gray-700 p-2 rounded-lg text-left hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">SMG (MP5)</div>
+                                    <div class="text-[9px] text-gray-400">Ultra Fire Rate • Close Quarters</div>
+                                </button>
+                                <button data-class="lmg" class="class-btn bg-gray-900 border border-gray-700 p-2 rounded-lg text-left hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">HEAVY LMG (M249)</div>
+                                    <div class="text-[9px] text-gray-400">100 Round Belt • High Sustained Fire</div>
+                                </button>
+                                <button data-class="shotgun" class="class-btn bg-gray-900 border border-gray-700 p-2 rounded-lg text-left hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">SHOTGUN (REMINGTON)</div>
+                                    <div class="text-[9px] text-gray-400">8 Heavy Pellets • Lethal Close-Up</div>
+                                </button>
+                                <button data-class="sniper" class="class-btn bg-gray-900 border border-gray-700 p-2 rounded-lg text-left hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">SNIPER (L96)</div>
+                                    <div class="text-[9px] text-gray-400">One-Shot Precision • Optical Scope</div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Map Selection & Bot Roster Customization -->
+                    <div class="flex flex-col gap-3 justify-between">
+                        <div>
+                            <h3 class="text-amber-400 text-xs font-black tracking-wider uppercase border-l-4 border-amber-500 pl-2 mb-2">SELECT MAP LOCATION</h3>
+                            <div class="grid grid-cols-1 gap-2" id="map-selector">
+                                <button data-map="dunes" class="map-btn active bg-amber-500/20 border-2 border-amber-500 p-2.5 rounded-lg text-center hover:bg-amber-500/30 transition">
+                                    <div class="font-bold text-xs text-amber-300">DUNES (CRASH STYLE)</div>
+                                    <div class="text-[10px] text-gray-400">Main Plane Wreckage, Ruins & Watchtower</div>
+                                </button>
+                                <button data-map="basement" class="map-btn bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-center hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">BASEMENT</div>
+                                    <div class="text-[10px] text-gray-400">Industrial Underground Steel Bunker Facility</div>
+                                </button>
+                                <button data-map="nuketown" class="map-btn bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-center hover:bg-gray-800 transition">
+                                    <div class="font-bold text-xs text-white">NUKETOWN</div>
+                                    <div class="text-[10px] text-gray-400">Suburban Courtyard with Enclosed Fence Walls</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bot Roster Customization Editor -->
+                        <div>
+                            <h3 class="text-amber-400 text-xs font-black tracking-wider uppercase border-l-4 border-amber-500 pl-2 mb-2">CUSTOM BOT EDITOR</h3>
+                            <div id="bot-editor-list" class="bg-black/60 border border-gray-800 rounded-lg p-2 max-h-36 overflow-y-auto flex flex-col gap-2">
+                                <!-- Bot rows generated by script -->
+                            </div>
+                        </div>
+
+                        <div class="bg-black/60 border border-gray-800 p-3 rounded-lg text-[11px] text-gray-400 grid grid-cols-2 gap-x-2 gap-y-1">
+                            <div><span class="text-amber-400 font-bold">WASD:</span> Move Player</div>
+                            <div><span class="text-amber-400 font-bold">Mouse:</span> Aim / Fire</div>
+                            <div><span class="text-amber-400 font-bold">Space:</span> Jump / Climb Ladder</div>
+                            <div><span class="text-amber-400 font-bold">Shift:</span> Sprint</div>
+                            <div><span class="text-amber-400 font-bold">G / F:</span> Frag / Flash Grenade</div>
+                            <div><span class="text-amber-400 font-bold">5 / 6:</span> Missile / Helicopter</div>
+                            <div><span class="text-amber-400 font-bold">V / R:</span> Melee Knife / Reload</div>
+                            <div><span class="text-amber-400 font-bold">TAB / ESC:</span> Score / Pause</div>
+                            <div class="col-span-2 text-yellow-400 font-bold mt-1">💡 Secret Unlock: Press 'P', then 'D', then 'D'</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-2 border-t border-gray-800">
+                    <button id="start-btn" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-black font-black py-3.5 rounded-xl text-lg tracking-wider uppercase transition shadow-lg">
+                        DEPLOY INTO MATCH
+                    </button>
+                    <button id="resume-btn" class="hidden flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded-xl text-lg tracking-wider uppercase transition shadow-lg">
+                        RESUME MATCH
+                    </button>
+                    <button id="exit-btn" class="hidden bg-red-600 hover:bg-red-500 text-white font-black px-6 py-3.5 rounded-xl text-base tracking-wider uppercase transition shadow-lg">
+                        QUIT MATCH
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ES Module Three.js App Execution -->
+    <script type="module">
+        // --- Bot Creation with Attached Guns & Custom Uniform Color ---
+        function createBotMesh(faction, colorHex) {
+            const group = new THREE.Group();
+            const color = colorHex ? parseInt(colorHex.replace('#', '0x')) : (faction === 'army' ? 0x15803d : 0x7f1d1d);
+            const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+            
+            // Body Torso
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.5), mat);
+            body.position.y = 1.2;
+            group.add(body);
+
+            // Head
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), headMat);
+            head.position.y = 2.1;
+            group.add(head);
+
+            // Bot Held Weapon attached to right side
+            const botGun = createWeaponModel('ar');
+            botGun.scale.set(1.1, 1.1, 1.1);
+            botGun.position.set(0.4, 1.1, -0.4);
+            group.add(botGun);
+
+            return group;
+        }
+
+        // --- State Flags & Scene Declarations ---
+        let scene, camera, renderer;
+        let colliders = [];
+        let ladders = [];
+        let bots = [];
+        let particles = [];
+        let activeHelicopter = null;
+
+        let selectedFaction = 'army';
+        let selectedClass = 'ar';
+        let selectedMap = 'dunes';
+        let botDifficulty = 'medium';
+        let customMatchTime = 300;
+
+        // Custom Bot Config Array
+        let customBotConfigs = [
+            { id: 0, name: 'Viper', faction: 'army', color: '#16a34a' },
+            { id: 1, name: 'Ghost', faction: 'army', color: '#0284c7' },
+            { id: 2, name: 'Reaper', faction: 'army', color: '#0d9488' },
+            { id: 3, name: 'Shadow', faction: 'terrorist', color: '#dc2626' },
+            { id: 4, name: 'Warlord', faction: 'terrorist', color: '#ea580c' },
+            { id: 5, name: 'Outlaw', faction: 'terrorist', color: '#b91c1c' }
+        ];
+
+        let currentWeapon = { ...WEAPONS.ar, ammo: WEAPONS.ar.ammoMax, reserve: WEAPONS.ar.reserveMax };
+        let secretKeyBuffer = [];
+        let isSecretTitleUnlocked = false;
+
+        let player = {
+            position: new THREE.Vector3(0, 1.7, 0),
+            velocity: new THREE.Vector3(),
+            rotation: new THREE.Vector2(),
+            isGrounded: true,
+            hp: 100,
+            isReloading: false,
+            grenadeCd: 0,
+            flashCd: 0,
+            meleeCd: 0,
+            isClimbing: false,
+            weaponMesh: null
+        };
+
+        let gameState = {
+            active: false,
+            paused: false,
+            kills: 0,
+            deaths: 0,
+            score: 0,
+            currentKillstreak: 0,
+            missileAvailable: false,
+            chopperAvailable: false,
+            timeRemaining: 300,
+            timerInterval: null
+        };
+
+        const DIFFICULTY_SETTINGS = {
+            easy: { accuracy: 0.25, fireRateMult: 1.5, damageMult: 0.6 },
+            medium: { accuracy: 0.55, fireRateMult: 1.0, damageMult: 1.0 },
+            hard: { accuracy: 0.88, fireRateMult: 0.7, damageMult: 1.3 }
+        };
+
+        // --- Render Bot Customization Editor UI ---
+        function renderBotEditor() {
+            const container = document.getElementById('bot-editor-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            customBotConfigs.forEach((bot, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-gray-900/80 p-1.5 rounded border border-gray-800 text-xs';
+                row.innerHTML = `
+                    <span class="text-gray-400 font-mono font-bold w-4">#${index + 1}</span>
+                    <input type="text" value="${bot.name}" data-id="${index}" class="bot-name-input bg-black border border-gray-700 text-amber-400 px-1.5 py-0.5 rounded w-24 text-[11px] font-bold focus:outline-none" />
+                    <select data-id="${index}" class="bot-faction-select bg-black border border-gray-700 text-gray-300 text-[10px] rounded p-0.5 focus:outline-none">
+                        <option value="army" ${bot.faction === 'army' ? 'selected' : ''}>ARMY</option>
+                        <option value="terrorist" ${bot.faction === 'terrorist' ? 'selected' : ''}>TERRORIST</option>
+                    </select>
+                    <input type="color" value="${bot.color}" data-id="${index}" class="bot-color-input w-6 h-6 bg-transparent cursor-pointer rounded border-none" />
+                `;
+                container.appendChild(row);
+            });
+
+            // Input Event Listeners
+            container.querySelectorAll('.bot-name-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    customBotConfigs[id].name = e.target.value.trim() || `Bot #${id + 1}`;
+                });
+            });
+
+            container.querySelectorAll('.bot-faction-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    customBotConfigs[id].faction = e.target.value;
+                });
+            });
+
+            container.querySelectorAll('.bot-color-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    customBotConfigs[id].color = e.target.value;
+                });
+            });
+        }
+
+        // --- Unlock Secret Game Title & Weapon ---
+        function triggerSecretUnlock() {
+            isSecretTitleUnlocked = true;
+            
+            // Switch Game Titles Throughout the UI
+            const newTitle = "CALL OF BOOTY BLACK COCKS";
+            document.title = newTitle;
+            document.getElementById('menu-game-title').innerText = newTitle;
+            document.getElementById('sb-game-title').innerText = newTitle;
+
+            // Show Secret Unlock Banner
+            const banner = document.getElementById('secret-banner');
+            banner.classList.add('active');
+            setTimeout(() => banner.classList.remove('active'), 4000);
+
+            // Swap Weapon to Baby Oil Sprayer
+            WEAPONS.baby_oil = WEAPONS.baby_oil || {
+                id: 'baby_oil',
+                name: 'BABY OIL SPRAYER 🧴',
+                damage: 12,
+                fireRate: 40,
+                ammoMax: 150,
+                reserveMax: 450,
+                reloadTime: 1500,
+                spread: 0.08,
+                pellets: 1,
+                recoil: 0.005,
+                auto: true
+            };
+            currentWeapon = { ...WEAPONS.baby_oil, ammo: WEAPONS.baby_oil.ammoMax, reserve: WEAPONS.baby_oil.reserveMax };
+            updateHUD();
+        }
+
+        function loadMap(mapType) {
+            colliders.forEach(c => scene.remove(c));
+            colliders = [];
+            bots.forEach(b => scene.remove(b.group));
+            bots = [];
+
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9 });
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+            colliders.push(ground);
+
+            buildInteriorHouse(scene, colliders, 0, -20, 14, 14, 8, 0x554433);
+
+            // Spawn Custom Configured Bots
+            customBotConfigs.forEach((config) => {
+                const botMesh = createBotMesh(config.faction, config.color);
+                botMesh.position.set((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40);
+                scene.add(botMesh);
+
+                bots.push({
+                    name: config.name,
+                    faction: config.faction,
+                    color: config.color,
+                    group: botMesh,
+                    hp: 100,
+                    alive: true,
+                    kills: 0,
+                    deaths: 0,
+                    lastShot: 0,
+                    fireInterval: 600,
+                    targetPos: botMesh.position.clone(),
+                    slippingTimer: 0,
+                    slipVelocity: new THREE.Vector3()
+                });
+            });
+        }
+
+        function setupUIListeners() {
+            document.getElementById('start-btn').addEventListener('click', startMatch);
+            document.getElementById('resume-btn').addEventListener('click', () => {
+                gameState.paused = false;
+                document.getElementById('main-menu').classList.add('hidden');
+            });
+            document.getElementById('exit-btn').addEventListener('click', () => {
+                location.reload();
+            });
+
+            // Secret Sequence Listener (P -> D -> D)
+            window.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                secretKeyBuffer.push(key);
+                if (secretKeyBuffer.length > 3) secretKeyBuffer.shift();
+
+                if (secretKeyBuffer.join('') === 'pdd') {
+                    triggerSecretUnlock();
+                    secretKeyBuffer = [];
+                }
+
+                if (e.code === 'Digit6' && gameState.chopperAvailable) {
+                    gameState.chopperAvailable = false;
+                    document.getElementById('chopper-card').classList.add('hidden');
+                    spawnAttackHelicopter();
+                    addKillfeed('Player', 'AIR SUPPORT', 'CHOPPER GUNNER (1m)');
+                }
+            });
+
+            renderBotEditor();
+        }
+        };
+
+        // --- Core Audio Synthesizer ---
+        class WebAudioFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playGunshot(type) {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(type === 'sniper' ? 120 : 220, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+        const audio = new WebAudioFX();
+
+        // --- Procedural Gun Mesh Generator ---
+        function createWeaponModel(type) {
+            const gunGroup = new THREE.Group();
+            const darkMetal = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8, roughness: 0.3 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.8 });
+            const silverMetal = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.9, roughness: 0.2 });
+
+            if (type === 'ar') { // AK-47 Style
+                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.6), darkMetal);
+                gunGroup.add(receiver);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), silverMetal);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.set(0, 0.03, -0.5);
+                gunGroup.add(barrel);
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.4), woodMat);
+                stock.position.set(0, -0.02, 0.45);
+                gunGroup.add(stock);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.12), darkMetal);
+                mag.position.set(0, -0.2, -0.05);
+                mag.rotation.x = 0.25;
+                gunGroup.add(mag);
+            } else if (type === 'smg') { // MP5 Style
+                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.45), darkMetal);
+                gunGroup.add(receiver);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8), darkMetal);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.set(0, 0.02, -0.35);
+                gunGroup.add(barrel);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 0.08), silverMetal);
+                mag.position.set(0, -0.18, -0.05);
+                mag.rotation.x = -0.15;
+                gunGroup.add(mag);
+            } else if (type === 'sniper') { // Bolt Action Rifle
+                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.8), darkMetal);
+                gunGroup.add(receiver);
+                const longBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.9, 8), silverMetal);
+                longBarrel.rotation.x = Math.PI / 2;
+                longBarrel.position.set(0, 0.02, -0.8);
+                gunGroup.add(longBarrel);
+                const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.35, 12), darkMetal);
+                scope.rotation.x = Math.PI / 2;
+                scope.position.set(0, 0.12, -0.1);
+                gunGroup.add(scope);
+            } else { // Shotgun & standard default
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.65), darkMetal);
+                gunGroup.add(body);
+                const dualBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.55, 8), silverMetal);
+                dualBarrel.rotation.x = Math.PI / 2;
+                dualBarrel.position.set(0, 0.03, -0.5);
+                gunGroup.add(dualBarrel);
+            }
+
+            return gunGroup;
+        }
+
+        // --- Bot Creation with Attached Guns ---
+        function createBotMesh(faction) {
+            const group = new THREE.Group();
+            const color = faction === 'army' ? 0x15803d : 0x7f1d1d;
+            const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+            
+            // Body Torso
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.5), mat);
+            body.position.y = 1.2;
+            group.add(body);
+
+            // Head
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), headMat);
+            head.position.y = 2.1;
+            group.add(head);
+
+            // Bot Held Weapon attached to right side
+            const botGun = createWeaponModel('ar');
+            botGun.scale.set(1.1, 1.1, 1.1);
+            botGun.position.set(0.4, 1.1, -0.4);
+            group.add(botGun);
+
+            return group;
+        }
+
+        // --- State Flags & Scene Declarations ---
+        let scene, camera, renderer;
+        let colliders = [];
+        let ladders = [];
+        let bots = [];
+        let particles = [];
+        let activeHelicopter = null;
+
+        let selectedFaction = 'army';
+        let selectedClass = 'ar';
+        let selectedMap = 'dunes';
+        let botDifficulty = 'medium';
+        let customMatchTime = 300;
+
+        let currentWeapon = { ...WEAPONS.ar, ammo: WEAPONS.ar.ammoMax, reserve: WEAPONS.ar.reserveMax };
+        let secretKeyBuffer = [];
+
+        let player = {
+            position: new THREE.Vector3(0, 1.7, 0),
+            velocity: new THREE.Vector3(),
+            rotation: new THREE.Vector2(),
+            isGrounded: true,
+            hp: 100,
+            isReloading: false,
+            grenadeCd: 0,
+            flashCd: 0,
+            meleeCd: 0,
+            isClimbing: false,
+            weaponMesh: null
+        };
+
+        let gameState = {
+            active: false,
+            paused: false,
+            kills: 0,
+            deaths: 0,
+            score: 0,
+            currentKillstreak: 0,
+            missileAvailable: false,
+            chopperAvailable: false,
+            timeRemaining: 300,
+            timerInterval: null
+        };
+
+        const DIFFICULTY_SETTINGS = {
+            easy: { accuracy: 0.25, fireRateMult: 1.5, damageMult: 0.6 },
+            medium: { accuracy: 0.55, fireRateMult: 1.0, damageMult: 1.0 },
+            hard: { accuracy: 0.88, fireRateMult: 0.7, damageMult: 1.3 }
+        };
+
+        // --- Particle FX Engine ---
+        function updateParticles(delta) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life -= delta;
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                } else {
+                    p.mesh.position.addScaledVector(p.velocity, delta);
+                }
+            }
+        }
+
+        function spawnTracerFX(from, to) {
+            const points = [from, to];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffcc00, linewidth: 2 });
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            particles.push({ mesh: line, velocity: new THREE.Vector3(), life: 0.08 });
+        }
+
+        // --- House & Building Interior Generator ---
+        function buildInteriorHouse(scene, colliders, cx, cz, w, d, h, wallColor) {
+            const mat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.8 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.7 });
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8 });
+
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), floorMat);
+            floor.position.set(cx, 0.15, cz); scene.add(floor); colliders.push(floor);
+
+            const secondFloorH = h / 2;
+            const floor2 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), floorMat);
+            floor2.position.set(cx, secondFloorH, cz); scene.add(floor2); colliders.push(floor2);
+
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 1, 0.4, d + 1), mat);
+            roof.position.set(cx, h + 0.2, cz); scene.add(roof); colliders.push(roof);
+
+            for (let i = 0; i < 12; i++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.3, 0.8), floorMat);
+                step.position.set(cx - w/3, 0.3 + i * (secondFloorH / 12), cz - d/3 + i * 0.5);
+                scene.add(step); colliders.push(step);
+            }
+
+            const wallThick = 0.6;
+            const wallW = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, d), mat);
+            wallW.position.set(cx - w/2, h/2, cz); scene.add(wallW); colliders.push(wallW);
+
+            const wallE = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, d), mat);
+            wallE.position.set(cx + w/2, h/2, cz); scene.add(wallE); colliders.push(wallE);
+
+            const balconyD = 4.0;
+            const balcony = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, balconyD), floorMat);
+            balcony.position.set(cx, secondFloorH, cz + d/2 + balconyD/2);
+            scene.add(balcony); colliders.push(balcony);
+
+            const railFront = new THREE.Mesh(new THREE.BoxGeometry(w, 1.1, 0.2), railMat);
+            railFront.position.set(cx, secondFloorH + 0.55, cz + d/2 + balconyD);
+            scene.add(railFront); colliders.push(railFront);
+        }
+
+        // --- Helicopter Entity Class ---
+        function spawnAttackHelicopter() {
+            if (activeHelicopter) scene.remove(activeHelicopter.group);
+
+            const choppGroup = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.2 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.6, metalness: 0.9 });
+
+            const fuselage = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 9, 10), bodyMat);
+            fuselage.rotation.x = Math.PI / 2; choppGroup.add(fuselage);
+
+            const cockpit = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 12), glassMat);
+            cockpit.position.set(0, 0.2, -4.0); choppGroup.add(cockpit);
+
+            const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.8, 7, 8), bodyMat);
+            tail.rotation.x = Math.PI / 2; tail.position.set(0, 0.8, 6.5); choppGroup.add(tail);
+
+            const rotorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 });
+            const mainBlades = new THREE.Mesh(new THREE.BoxGeometry(16, 0.1, 0.8), rotorMat);
+            mainBlades.position.set(0, 2.2, 0); choppGroup.add(mainBlades);
+
+            choppGroup.position.set(0, 35, 0);
+            scene.add(choppGroup);
+
+            activeHelicopter = {
+                group: choppGroup,
+                blades: mainBlades,
+                angle: 0,
+                lastShot: 0,
+                expireTime: performance.now() + 60000
+            };
+        }
+
+        function updateHelicopter(delta) {
+            if (!activeHelicopter) return;
+
+            const now = performance.now();
+            if (now > activeHelicopter.expireTime) {
+                scene.remove(activeHelicopter.group);
+                activeHelicopter = null;
+                return;
+            }
+
+            activeHelicopter.angle += delta * 0.45;
+            const radius = 40;
+            activeHelicopter.group.position.x = Math.cos(activeHelicopter.angle) * radius;
+            activeHelicopter.group.position.z = Math.sin(activeHelicopter.angle) * radius;
+            activeHelicopter.group.position.y = 32 + Math.sin(activeHelicopter.angle * 2) * 3;
+            activeHelicopter.group.lookAt(0, 5, 0);
+
+            activeHelicopter.blades.rotation.y += delta * 25.0;
+
+            if (now - activeHelicopter.lastShot > 180) {
+                activeHelicopter.lastShot = now;
+                const aliveBots = bots.filter(b => b.alive);
+                if (aliveBots.length > 0) {
+                    const targetBot = aliveBots[Math.floor(Math.random() * aliveBots.length)];
+                    targetBot.hp -= 22;
+                    audio.playGunshot('ar');
+                    spawnTracerFX(activeHelicopter.group.position, targetBot.group.position);
+                    if (targetBot.hp <= 0) killBot(targetBot, 'Support Helicopter');
+                }
+            }
+        }
+
+        // --- Engine Initialization ---
+        function initEngine() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+            sunLight.position.set(50, 80, 40);
+            scene.add(sunLight);
+
+            setupUIListeners();
+        }
+
+        function loadMap(mapType) {
+            colliders.forEach(c => scene.remove(c));
+            colliders = [];
+            bots.forEach(b => scene.remove(b.group));
+            bots = [];
+
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9 });
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+            colliders.push(ground);
+
+            buildInteriorHouse(scene, colliders, 0, -20, 14, 14, 8, 0x554433);
+
+            for (let i = 0; i < 6; i++) {
+                const faction = i % 2 === 0 ? 'army' : 'terrorist';
+                const botMesh = createBotMesh(faction);
+                botMesh.position.set((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40);
+                scene.add(botMesh);
+
+                bots.push({
+                    name: `Bot #${i + 1}`,
+                    faction: faction,
+                    group: botMesh,
+                    hp: 100,
+                    alive: true,
+                    kills: 0,
+                    deaths: 0,
+                    lastShot: 0,
+                    fireInterval: 600,
+                    targetPos: botMesh.position.clone(),
+                    slippingTimer: 0,
+                    slipVelocity: new THREE.Vector3()
+                });
+            }
+        }
+
+        function updatePlayerPhysics(delta) {
+            player.position.addScaledVector(player.velocity, delta);
+            camera.position.copy(player.position);
+        }
+
+        function damagePlayer(amount, killerName) {
+            player.hp -= amount;
+            document.getElementById('health-bar').style.width = `${Math.max(0, player.hp)}%`;
+            document.getElementById('health-text').innerText = `${Math.max(0, player.hp)} HP`;
+
+            if (player.hp <= 0) {
+                gameState.deaths++;
+                document.getElementById('killer-name').innerText = killerName;
+                document.getElementById('death-overlay').style.opacity = '1';
+                setTimeout(() => {
+                    respawnPlayer();
+                    document.getElementById('death-overlay').style.opacity = '0';
+                }, 3000);
+            }
+        }
+
+        function respawnPlayer() {
+            player.hp = 100;
+            player.position.set(0, 1.7, 10);
+            document.getElementById('health-bar').style.width = '100%';
+            document.getElementById('health-text').innerText = '100 HP';
+        }
+
+        function killBot(victimBot, killerName) {
+            victimBot.alive = false;
+            victimBot.group.visible = false;
+            victimBot.deaths++;
+
+            if (killerName === 'Player' || killerName === 'Support Helicopter') {
+                gameState.kills++;
+                gameState.score += 100;
+                gameState.currentKillstreak++;
+
+                if (gameState.currentKillstreak === 5) {
+                    gameState.missileAvailable = true;
+                    document.getElementById('killstreak-card').classList.remove('hidden');
+                }
+                if (gameState.currentKillstreak === 7) {
+                    gameState.chopperAvailable = true;
+                    document.getElementById('chopper-card').classList.remove('hidden');
+                }
+            }
+
+            addKillfeed(killerName, victimBot.name, killerName === 'Player' ? currentWeapon.name : 'Combat');
+            setTimeout(() => {
+                victimBot.alive = true;
+                victimBot.hp = 100;
+                victimBot.group.position.set((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40);
+                victimBot.group.visible = true;
+            }, 3000);
+        }
+
+        function addKillfeed(attacker, victim, weaponName) {
+            const kf = document.getElementById('killfeed');
+            const entry = document.createElement('div');
+            entry.className = 'bg-black/80 px-3 py-1 rounded text-white border-l-2 border-amber-500 shadow';
+            entry.innerHTML = `<span class="text-amber-400 font-bold">${attacker}</span> 🔫 <span class="text-red-400 font-bold">${victim}</span>`;
+            kf.appendChild(entry);
+            setTimeout(() => entry.remove(), 4000);
+        }
+
+        function updateBots(delta) {
+            const now = performance.now();
+            const diff = DIFFICULTY_SETTINGS[botDifficulty];
+
+            bots.forEach(bot => {
+                if (!bot.alive) return;
+
+                const distToPlayer = bot.group.position.distanceTo(player.position);
+                if (distToPlayer < 25) {
+                    bot.group.lookAt(player.position.x, bot.group.position.y, player.position.z);
+                    if (now - bot.lastShot > bot.fireInterval * diff.fireRateMult) {
+                        bot.lastShot = now;
+                        if (Math.random() < diff.accuracy) {
+                            damagePlayer(Math.floor(10 * diff.damageMult), bot.name);
+                        }
+                        spawnTracerFX(bot.group.position.clone().add(new THREE.Vector3(0, 1.5, 0)), player.position);
+                    }
+                }
+            });
+        }
+
+        function updateMatchTimer() {
+            if (!gameState.active || gameState.paused) return;
+            gameState.timeRemaining--;
+            const mins = Math.floor(gameState.timeRemaining / 60);
+            const secs = gameState.timeRemaining % 60;
+            document.getElementById('match-timer').innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function updateHUD() {
+            document.getElementById('ammo-clip').innerText = currentWeapon.ammo;
+            document.getElementById('ammo-reserve').innerText = currentWeapon.reserve;
+            document.getElementById('weapon-name').innerText = currentWeapon.name;
+        }
+
+        function setupUIListeners() {
+            document.getElementById('start-btn').addEventListener('click', startMatch);
+            document.getElementById('resume-btn').addEventListener('click', () => {
+                gameState.paused = false;
+                document.getElementById('main-menu').classList.add('hidden');
+            });
+            document.getElementById('exit-btn').addEventListener('click', () => {
+                location.reload();
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Digit6' && gameState.chopperAvailable) {
+                    gameState.chopperAvailable = false;
+                    document.getElementById('chopper-card').classList.add('hidden');
+                    spawnAttackHelicopter();
+                    addKillfeed('Player', 'AIR SUPPORT', 'CHOPPER GUNNER (1m)');
+                }
+            });
+        }
+
+        function startMatch() {
+            botDifficulty = document.getElementById('bot-difficulty-select').value;
+            customMatchTime = parseInt(document.getElementById('match-timer-select').value);
+
+            currentWeapon = { ...WEAPONS[selectedClass], ammo: WEAPONS[selectedClass].ammoMax, reserve: WEAPONS[selectedClass].reserveMax };
+            gameState.kills = 0; gameState.deaths = 0; gameState.score = 0;
+            gameState.currentKillstreak = 0;
+            gameState.timeRemaining = customMatchTime;
+            gameState.active = true; gameState.paused = false;
+
+            loadMap(selectedMap);
+            respawnPlayer();
+
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(updateMatchTimer, 1000);
+
+            updateHUD();
+        }
+
+        let lastTime = performance.now();
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = performance.now();
+            const delta = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            if (gameState.active && !gameState.paused) {
+                updatePlayerPhysics(delta);
+                updateBots(delta);
+                updateHelicopter(delta);
+                updateParticles(delta);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() { initEngine(); animate(); };
+    </script>
+</body>
+</html>
